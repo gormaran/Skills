@@ -52,7 +52,8 @@ tu ordenador, sin límite de subida, y deja el vídeo final en tu carpeta.
    git clone -b claude/viral-reels-skill-ti8bd8 https://github.com/gormaran/skills.git gormaran-skills
    mkdir -p ~/.claude/skills && cp -r gormaran-skills/gormaran-viral-reels ~/.claude/skills/
    ```
-   (Cuando la rama se fusione en `main`, basta con `git clone https://github.com/gormaran/skills.git`.)
+   En Windows la carpeta es `%USERPROFILE%\.claude\skills\`. Cuando la rama se fusione en `main`, basta con
+   `git clone https://github.com/gormaran/skills.git`.
 4. Opcional: conecta tu servidor MCP de **n8n** en Claude Code para que la skill lea las palabras clave del
    workflow en directo y mida los leads. Sin él usa RADAR, GEO y RESERVAS.
 
@@ -85,7 +86,7 @@ acceso a tu n8n. Para guiones e ideas (sin vídeo) funciona igual de bien.
 Sirve para mantener y mejorar la skill (este repositorio), no para editar tus vídeos: aquí no puedes
 adjuntar vídeos cómodamente y el vídeo final se quedaría en un servidor temporal.
 
-### Uso
+### Ejemplos de peticiones
 ```
 /gormaran-viral-reels reel sobre si ChatGPT recomienda restaurantes de Vitoria, objetivo lead, GEO
 /gormaran-viral-reels 5 reels para esta semana
