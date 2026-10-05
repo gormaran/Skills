@@ -10,7 +10,8 @@ description: >
   clientes", "contenido para Instagram", "calendario de reels", "analiza este reel", "por qué no funcionó
   mi reel" o pegue un enlace de un reel para modelarlo. También edita vídeos que el usuario adjunte como
   archivo: los "ve" (fotogramas) y "escucha" (transcripción con tiempos), propone mejoras y entrega el reel
-  con subtítulos Bebas Neue tamaño 12 animados palabra por palabra y motion graphics acordes a lo que se dice
+  sin silencios y acelerado ×1,3, con subtítulos Bebas Neue tamaño 12 animados palabra por palabra y motion
+  graphics acordes a lo que se dice
   ("subtitula este vídeo", "edita mi reel", "ponle subtítulos y gráficos", "monta este vídeo").
 user-invokable: true
 argument-hint: "[tema o idea | vídeo adjunto] [objetivo: guardar|compartir|seguir|lead] [opcional: RADAR|GEO|RESERVAS] [opcional: URL de un reel a modelar] [opcional: nº de reels]"
@@ -170,42 +171,56 @@ por palabra. Requisitos: `ffmpeg` (con libass) y Python 3; para transcribir en l
 **B1. Localiza el archivo.** En Claude.ai los adjuntos están en `/mnt/user-data/uploads/`; en Claude Code,
 usa la ruta que dé el usuario. Trabaja en una carpeta propia (p. ej. `trabajo_reel/`).
 
-**B2. Analiza (ver + escuchar)** — los scripts están en la carpeta `scripts/` de esta skill:
+**B2. Corta silencios y acelera ×1,3** (siempre, salvo que el usuario diga lo contrario) — los scripts están en
+la carpeta `scripts/` de esta skill:
 ```bash
-python3 scripts/analizar_video.py VIDEO.mp4 --out trabajo_reel --cada 1
+python3 scripts/recortar_video.py VIDEO.mp4 --out trabajo_reel/editado.mp4 --velocidad 1.3
+```
+- Quita cada silencio de más de 0,35 s (dejando 0,10 s de aire para que no suene a corte brusco), une los
+  tramos con un fundido de audio de 15 ms y acelera a **×1,3** sin que la voz se vuelva aguda.
+- Revisa `trabajo_reel/editado_cortes.json` (duración antes/después, tramos cortados). Si se ha comido sílabas,
+  repite con `--umbral -40` (más permisivo) o `--margen 0.15`; si quedan pausas, `--umbral -28` o `--min-silencio 0.25`.
+- A partir de aquí **todo se hace sobre `editado.mp4`**, así los tiempos de subtítulos y gráficos ya son los del vídeo final.
+
+**B3. Analiza (ver + escuchar) el vídeo editado:**
+```bash
+python3 scripts/analizar_video.py trabajo_reel/editado.mp4 --out trabajo_reel --cada 1
 ```
 - Abre `trabajo_reel/hoja_contacto.jpg` (todos los fotogramas con su segundo) y los fotogramas sueltos que
   necesites de `trabajo_reel/fotogramas/`. Anota: dónde está la cara, qué se ve en pantalla, cambios de plano.
 - Lee `trabajo_reel/transcripcion.txt`.
 - Si no se puede transcribir en local (sin faster-whisper o sin red para descargar el modelo), transcribe
   `audio.wav` con la herramienta disponible (p. ej. ElevenLabs `creative_transcribe_audio`) o pide al usuario
-  el `.srt` de CapCut/Edits, y repite con `--transcripcion fichero.srt|.json`.
+  el `.srt` de CapCut/Edits. Si ese `.srt` es del vídeo **original**, conviértelo con
+  `analizar_video.py VIDEO.mp4 --out trabajo_orig --transcripcion fichero.srt` y recalcula sus tiempos con
+  `recortar_video.py VIDEO.mp4 --out trabajo_reel/editado.mp4 --transcripcion trabajo_orig/transcripcion.json`;
+  después usa `trabajo_reel/editado_transcripcion.json` como `--transcripcion` del paso B3.
 
-**B3. Corrige la transcripción.** Revisa `transcripcion.json` y corrige nombres y términos (GORMARAN, Gabriela
+**B4. Corrige la transcripción.** Revisa `transcripcion.json` y corrige nombres y términos (GORMARAN, Gabriela
 Ormazabal, Vitoria-Gasteiz, ChatGPT, GEO, RESERVAS, RADAR, clientes…), sin tocar los tiempos. Los subtítulos
 son lo primero que se lee: cero faltas.
 
-**B4. Diagnóstico rápido del vídeo** (antes de editar, en 5 líneas): ¿el gancho para el scroll en 1,5 s?
+**B5. Diagnóstico rápido del vídeo** (antes de editar, en 5 líneas): ¿el gancho para el scroll en 1,5 s?
 ¿hay premio al final? ¿el CTA usa una palabra de n8n? ¿qué sobra (silencios, repeticiones)? Si el gancho o el
-CTA fallan, propón cómo arreglarlo con gráficos (título de gancho, tarjeta CTA) y sugiere recortes; recortar
-o regrabar lo decide el usuario.
+CTA fallan, propón cómo arreglarlo con gráficos (título de gancho, tarjeta CTA) y sugiere recortes de
+contenido (los silencios ya están quitados); recortar frases o regrabar lo decide el usuario.
 
-**B5. Plan de motion graphics.** Escribe `trabajo_reel/plan_mg.json` siguiendo
+**B6. Plan de motion graphics.** Escribe `trabajo_reel/plan_mg.json` siguiendo
 [motion-graphics.md](references/motion-graphics.md): cada gráfico nace de algo que **se dice** (cifra →
 contador, enumeración → lista, concepto → palabra clave, "mira esto" → círculo + flecha + zoom, CTA → tarjeta
 con RADAR/GEO/RESERVAS). Usa los fotogramas para no tapar la cara ni lo importante.
 
-**B6. Previsualiza y revisa:**
+**B7. Previsualiza y revisa:**
 ```bash
-python3 scripts/render_reel.py VIDEO.mp4 --palabras trabajo_reel/transcripcion.json \
+python3 scripts/render_reel.py trabajo_reel/editado.mp4 --palabras trabajo_reel/transcripcion.json \
   --plan trabajo_reel/plan_mg.json --out trabajo_reel/reel_final.mp4 --preview 0.8,3.5,6.2,9.0
 ```
 Abre los PNG de `trabajo_reel/reel_final_preview/`, corrige el plan y repite hasta que esté limpio.
 
-**B7. Render final:** el mismo comando sin `--preview`. Subtítulos por defecto: **Bebas Neue, tamaño 12,
+**B8. Render final:** el mismo comando sin `--preview`. Subtítulos por defecto: **Bebas Neue, tamaño 12,
 palabra por palabra** (`--modo una` para una palabra cada vez; `--tamano N` solo si el usuario lo pide).
 
-**B8. Entrega:** el `reel_final.mp4`, el `.ass` (editable) y, con la plantilla, el **caption** con la palabra
+**B9. Entrega:** el `reel_final.mp4`, el `.ass` (editable) y, con la plantilla, el **caption** con la palabra
 clave en la primera línea, la respuesta pública y la historia de apoyo (Paso 6).
 
 ## Paso 9 — Aprende (bucle de mejora)
