@@ -8,9 +8,12 @@ description: >
   «GORMARAN · Alternativa ManyChat», que entrega el recurso por DM tras seguir la cuenta. Úsala cuando el
   usuario diga "hazme un reel", "guion para reel", "ideas de reels", "reel viral", "reel para captar
   clientes", "contenido para Instagram", "calendario de reels", "analiza este reel", "por qué no funcionó
-  mi reel" o pegue un enlace de un reel para modelarlo.
+  mi reel" o pegue un enlace de un reel para modelarlo. También edita vídeos que el usuario adjunte como
+  archivo: los "ve" (fotogramas) y "escucha" (transcripción con tiempos), propone mejoras y entrega el reel
+  con subtítulos Bebas Neue tamaño 12 animados palabra por palabra y motion graphics acordes a lo que se dice
+  ("subtitula este vídeo", "edita mi reel", "ponle subtítulos y gráficos", "monta este vídeo").
 user-invokable: true
-argument-hint: "[tema o idea] [objetivo: guardar|compartir|seguir|lead] [opcional: RADAR|GEO|RESERVAS] [opcional: URL de un reel a modelar] [opcional: nº de reels]"
+argument-hint: "[tema o idea | vídeo adjunto] [objetivo: guardar|compartir|seguir|lead] [opcional: RADAR|GEO|RESERVAS] [opcional: URL de un reel a modelar] [opcional: nº de reels]"
 license: MIT
 metadata:
   author: GORMARAN Marketing Agency
@@ -37,6 +40,12 @@ Antes de escribir nada, carga el contexto:
 - [references/ganchos.md](references/ganchos.md) — banco de ganchos por objetivo y por palabra clave.
 - [references/formatos.md](references/formatos.md) — formatos probados con estructura y tiempos.
 - [templates/guion-reel.md](templates/guion-reel.md) — plantilla exacta de entrega.
+- [references/motion-graphics.md](references/motion-graphics.md) — estilo de subtítulos, qué gráfico usar según lo que se dice y formato del plan (solo para el modo vídeo).
+
+**Dos modos:**
+- **A · Idear y guionizar** (no hay vídeo): pasos 0–9.
+- **B · Editar un vídeo adjunto** (el usuario sube un archivo de vídeo): ve directamente a la sección
+  [Modo B](#modo-b--editar-un-vídeo-adjunto) y usa los pasos 1, 3, 4 y 6 para evaluar el contenido y elegir el CTA.
 
 ---
 
@@ -153,6 +162,52 @@ Checklist (si algo falla, corrige antes de entregar):
 - [ ] Estructura modelada, palabras propias.
 - [ ] Suena a Gabriela.
 
+## Modo B — Editar un vídeo adjunto
+
+Claude no reproduce vídeo, así que lo "ve" por fotogramas y lo "escucha" por su transcripción con tiempos
+por palabra. Requisitos: `ffmpeg` (con libass) y Python 3; para transcribir en local, `pip install faster-whisper`.
+
+**B1. Localiza el archivo.** En Claude.ai los adjuntos están en `/mnt/user-data/uploads/`; en Claude Code,
+usa la ruta que dé el usuario. Trabaja en una carpeta propia (p. ej. `trabajo_reel/`).
+
+**B2. Analiza (ver + escuchar)** — los scripts están en la carpeta `scripts/` de esta skill:
+```bash
+python3 scripts/analizar_video.py VIDEO.mp4 --out trabajo_reel --cada 1
+```
+- Abre `trabajo_reel/hoja_contacto.jpg` (todos los fotogramas con su segundo) y los fotogramas sueltos que
+  necesites de `trabajo_reel/fotogramas/`. Anota: dónde está la cara, qué se ve en pantalla, cambios de plano.
+- Lee `trabajo_reel/transcripcion.txt`.
+- Si no se puede transcribir en local (sin faster-whisper o sin red para descargar el modelo), transcribe
+  `audio.wav` con la herramienta disponible (p. ej. ElevenLabs `creative_transcribe_audio`) o pide al usuario
+  el `.srt` de CapCut/Edits, y repite con `--transcripcion fichero.srt|.json`.
+
+**B3. Corrige la transcripción.** Revisa `transcripcion.json` y corrige nombres y términos (GORMARAN, Gabriela
+Ormazabal, Vitoria-Gasteiz, ChatGPT, GEO, RESERVAS, RADAR, clientes…), sin tocar los tiempos. Los subtítulos
+son lo primero que se lee: cero faltas.
+
+**B4. Diagnóstico rápido del vídeo** (antes de editar, en 5 líneas): ¿el gancho para el scroll en 1,5 s?
+¿hay premio al final? ¿el CTA usa una palabra de n8n? ¿qué sobra (silencios, repeticiones)? Si el gancho o el
+CTA fallan, propón cómo arreglarlo con gráficos (título de gancho, tarjeta CTA) y sugiere recortes; recortar
+o regrabar lo decide el usuario.
+
+**B5. Plan de motion graphics.** Escribe `trabajo_reel/plan_mg.json` siguiendo
+[motion-graphics.md](references/motion-graphics.md): cada gráfico nace de algo que **se dice** (cifra →
+contador, enumeración → lista, concepto → palabra clave, "mira esto" → círculo + flecha + zoom, CTA → tarjeta
+con RADAR/GEO/RESERVAS). Usa los fotogramas para no tapar la cara ni lo importante.
+
+**B6. Previsualiza y revisa:**
+```bash
+python3 scripts/render_reel.py VIDEO.mp4 --palabras trabajo_reel/transcripcion.json \
+  --plan trabajo_reel/plan_mg.json --out trabajo_reel/reel_final.mp4 --preview 0.8,3.5,6.2,9.0
+```
+Abre los PNG de `trabajo_reel/reel_final_preview/`, corrige el plan y repite hasta que esté limpio.
+
+**B7. Render final:** el mismo comando sin `--preview`. Subtítulos por defecto: **Bebas Neue, tamaño 12,
+palabra por palabra** (`--modo una` para una palabra cada vez; `--tamano N` solo si el usuario lo pide).
+
+**B8. Entrega:** el `reel_final.mp4`, el `.ass` (editable) y, con la plantilla, el **caption** con la palabra
+clave en la primera línea, la respuesta pública y la historia de apoyo (Paso 6).
+
 ## Paso 9 — Aprende (bucle de mejora)
 
 A las 48–72 h:
@@ -172,6 +227,6 @@ Guarda ganchos y formatos ganadores en `references/ganchos.md` → "Ganadores pr
 
 ---
 
-**No negociables:** honestidad (datos reales, todo "te lo mando" se manda), sincronía con n8n (ninguna palabra inventada), originalidad (técnica sí, palabras ajenas no), identidad + emoción.
+**No negociables:** subtítulos sin faltas y sincronizados palabra a palabra; honestidad (datos reales, todo "te lo mando" se manda), sincronía con n8n (ninguna palabra inventada), originalidad (técnica sí, palabras ajenas no), identidad + emoción.
 
 *Metodología adaptada del enfoque "objetivo → emoción → gancho → embudo" de los skills abiertos de Ootto (MIT, github.com/Ootto-AI/claude-content-skills) y del artículo "Make viral Instagram Reels with Claude", ajustada al español, a GORMARAN Marketing Agency y a su embudo de n8n.*

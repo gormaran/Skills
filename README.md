@@ -10,6 +10,11 @@ gormaran-marketing.com): investiga el nicho, elige objetivo (guardar / compartir
 workflow de n8n «GORMARAN · Alternativa ManyChat»** (RADAR, GEO, RESERVAS → seguir + LISTO → recurso por DM
 → diagnóstico gratuito).
 
+También **edita vídeos adjuntos**: los analiza (fotogramas + transcripción con tiempos), propone mejoras y
+renderiza el reel con subtítulos **Bebas Neue tamaño 12 animados palabra por palabra** y **motion graphics**
+(títulos, contadores, listas, rótulos, flechas, círculos, zooms, flashes y tarjeta CTA) según lo que se dice,
+con los colores de GORMARAN (coral `#FF5757`, morado oscuro `#26212E`).
+
 ```
 gormaran-viral-reels/
 ├── SKILL.md                         # flujo completo (pasos 0–9)
@@ -19,7 +24,12 @@ gormaran-viral-reels/
 │   ├── referentes-nicho.md          # creadores de referencia y qué modelar
 │   ├── algoritmo-instagram.md       # señales de alcance 2026
 │   ├── ganchos.md                   # banco de ganchos + "Ganadores propios"
-│   └── formatos.md                  # 10 formatos con estructura y tiempos
+│   ├── formatos.md                  # 10 formatos con estructura y tiempos
+│   └── motion-graphics.md           # estilo de subtítulos, catálogo de gráficos y formato del plan
+├── scripts/
+│   ├── analizar_video.py            # fotogramas + hoja de contacto + audio + transcripción por palabra
+│   └── render_reel.py               # subtítulos palabra a palabra + motion graphics + zoom → mp4
+├── assets/fonts/                    # Bebas Neue (licencia SIL OFL)
 └── templates/
     └── guion-reel.md                # plantilla de entrega
 ```
@@ -34,11 +44,17 @@ cp -r gormaran-viral-reels ~/.claude/skills/
 **Claude.ai / app:** comprime la carpeta `gormaran-viral-reels` en un .zip y súbela en
 *Ajustes → Capacidades → Skills*.
 
+### Requisitos para editar vídeo
+- `ffmpeg` con libass (lo traen las instalaciones normales de ffmpeg) y Python 3.
+- Transcripción local opcional: `pip install faster-whisper` (descarga el modelo la primera vez). Sin ella,
+  sirve un `.srt` de CapCut/Edits o una transcripción de ElevenLabs (`--transcripcion`).
+
 ### Uso
 ```
 /gormaran-viral-reels reel sobre si ChatGPT recomienda restaurantes de Vitoria, objetivo lead, GEO
 /gormaran-viral-reels 5 reels para esta semana
 /gormaran-viral-reels analiza este reel y haz mi versión: https://www.instagram.com/reel/...
+/gormaran-viral-reels edita este vídeo con subtítulos y motion graphics, CTA GEO   (+ vídeo adjunto)
 ```
 O simplemente: "Hazme un reel viral para captar restaurantes con la demo de RESERVAS".
 
